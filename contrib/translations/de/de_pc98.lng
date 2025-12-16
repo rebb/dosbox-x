@@ -1,6 +1,6 @@
 :DOSBOX-X:LANGUAGE:German
 :DOSBOX-X:CODEPAGE:858
-:DOSBOX-X:VERSION:2025.05.03
+:DOSBOX-X:VERSION:2025.12.01
 :DOSBOX-X:REMARK:
 :PROGRAM_BOOT_BOOTING
 Starte von Laufwerk 
@@ -273,7 +273,7 @@ Aktuelle Lautstaerkeeinstellung
 Sound Blaster Konfiguration
 .
 :CURRENT_MIDICONFIG
-Aktuelle MIDI Konfiguration
+Aktuelle MIDI/OPL Konfiguration
 .
 :CREATE_IMAGE
 Leeres Laufwerksimage erstellen
@@ -2609,6 +2609,9 @@ Schnellstartprogramm...
 :MENU:mapper_shutdown
 Beende DOSBox-X
 .
+:MENU:mapper_capkeyboard
+Capture keyboard
+.
 :MENU:mapper_capmouse
 Maus einfangen
 .
@@ -3159,7 +3162,7 @@ Zeige Lautstaerkeregler
 Zeige Sound Blaster Konfiguration
 .
 :MENU:midi_info
-Zeige MIDI Konfiguration
+Zeige MIDI/OPL Konfiguration
 .
 :MENU:DOSMenu
 DOS

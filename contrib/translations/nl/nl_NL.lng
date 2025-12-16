@@ -1,6 +1,6 @@
 :DOSBOX-X:LANGUAGE:Nederlands (Nederland)
 :DOSBOX-X:CODEPAGE:858
-:DOSBOX-X:VERSION:2025.05.03
+:DOSBOX-X:VERSION:2025.12.01
 :DOSBOX-X:REMARK:
 :AUTOEXEC_CONFIGFILE_HELP
 Lijnen in dit gedeelte worden uitgevoerd bij opstarten.
@@ -144,7 +144,7 @@ Huidige geluidsmixervolumes
 Sound Blaster configuratie
 .
 :CURRENT_MIDICONFIG
-Huidige MIDI configuratie
+Huidige MIDI/OPL configuratie
 .
 :CREATE_IMAGE
 Lege schijfimage maken
@@ -2411,6 +2411,9 @@ Snelstartprogramma...
 :MENU:mapper_shutdown
 Afsluiten van DOSBox-X
 .
+:MENU:mapper_capkeyboard
+Capture keyboard
+.
 :MENU:mapper_capmouse
 Muis vastleggen
 .
@@ -2979,7 +2982,7 @@ Geluidsmixervolumes weergeven
 Sound Blaster-configuratie weergeven
 .
 :MENU:midi_info
-Configuratie van MIDI-apparaat weergeven
+Configuratie van MIDI/OPL-apparaat weergeven
 .
 :MENU:DOSMenu
 DOS

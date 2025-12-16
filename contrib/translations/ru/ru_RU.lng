@@ -1,6 +1,6 @@
 :DOSBOX-X:LANGUAGE:Russian (Russia)
 :DOSBOX-X:CODEPAGE:866
-:DOSBOX-X:VERSION:2025.05.03
+:DOSBOX-X:VERSION:2025.12.01
 :DOSBOX-X:REMARK:
 :AUTOEXEC_CONFIGFILE_HELP
 Строки в этом разделе будут выполнены при запуске.
@@ -150,7 +150,7 @@ OK
 Конфигурация Sound Blaster
 .
 :CURRENT_MIDICONFIG
-Текущая конфигурация MIDI
+Текущая конфигурация MIDI/OPL
 .
 :CREATE_IMAGE
 Создать пустой образ диска
@@ -2558,6 +2558,9 @@ DEBUGBOX [команда] [опции]
 :MENU:mapper_shutdown
 Выйти из DOSBox-X
 .
+:MENU:mapper_capkeyboard
+Capture keyboard
+.
 :MENU:mapper_capmouse
 Захват мыши
 .
@@ -3128,7 +3131,7 @@ CJK: Включить расширенный китайский набор си�
 Показать конфигурацию Sound Blaster
 .
 :MENU:midi_info
-Показать конфигурацию MIDI устройства
+Показать конфигурацию MIDI/OPL устройства
 .
 :MENU:DOSMenu
 DOS

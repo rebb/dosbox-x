@@ -33,13 +33,13 @@
 #include <utime.h>
 #include <sys/file.h>
 #else
-#include <fcntl.h>
 #include <sys/utime.h>
 #include <sys/locking.h>
 #ifdef OS2
 #include <sys/time.h>
 #endif
 #endif
+#include <fcntl.h>
 #include <sys/stat.h>
 
 #include "dosbox.h"
@@ -1173,14 +1173,14 @@ void getdrivezpath(std::string &path, std::string const& dirname) {
         }
         if (!path.size() || !ret) {
             path = "";
-            Cross::GetPlatformConfigDir(path);
+            path = Cross::GetPlatformConfigDir();
             path += dirname;
             host_name = CodePageGuestToHost(path.c_str());
             res=host_name == NULL?stat(path.c_str(),&cstat):ht_stat(host_name,&hstat);
             ret=res==-1?false:((host_name == NULL?cstat.st_mode:hstat.st_mode) & S_IFDIR);
             if (!ret) {
                 path = "";
-                Cross::GetPlatformResDir(path);
+                path = Cross::GetPlatformResDir();
                 path += dirname;
                 host_name = CodePageGuestToHost(path.c_str());
                 res=host_name == NULL?stat(path.c_str(),&cstat):ht_stat(host_name,&hstat);
@@ -2348,7 +2348,11 @@ bool localDrive::AllocationInfo64(uint32_t* _bytes_sector, uint32_t* _sectors_cl
         res = GetDiskFreeSpace(diskToQuery, &dwSectPerClust, &dwBytesPerSect, &dwFreeClusters, &dwTotalClusters);
         if(dwSectPerClust * dwBytesPerSect == 0) return false;
         ULARGE_INTEGER FreeBytesAvailableToCaller, TotalNumberOfBytes;
-        GetDiskFreeSpaceEx(diskToQuery, &FreeBytesAvailableToCaller, &TotalNumberOfBytes, NULL);
+        HMODULE __kernel32 = GetModuleHandleW(L"kernel32.dll");
+        auto __GetDiskFreeSpaceExA = (BOOL (WINAPI *)(LPCSTR, PULARGE_INTEGER, PULARGE_INTEGER, PULARGE_INTEGER))GetProcAddress(__kernel32,"GetDiskFreeSpaceExA");
+        if (!__GetDiskFreeSpaceExA)
+            return false;
+        __GetDiskFreeSpaceExA(diskToQuery, &FreeBytesAvailableToCaller, &TotalNumberOfBytes, NULL);
         qwTotalClusters = TotalNumberOfBytes.QuadPart / (dwSectPerClust * dwBytesPerSect);
         qwFreeClusters = FreeBytesAvailableToCaller.QuadPart / (dwSectPerClust * dwBytesPerSect);
 
@@ -2958,6 +2962,7 @@ bool LocalFile::LockFile(uint8_t mode, uint32_t pos, uint16_t size) {
 		case EINTR:
 		case ENOLCK:
 		case EAGAIN:
+		case EACCES:
 			DOS_SetError(0x21);
 			break;
 		case EBADF:

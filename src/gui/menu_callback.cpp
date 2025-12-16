@@ -1858,7 +1858,7 @@ void Load_language_file() {
     struct stat st;
     std::string res_path, exepath = GetDOSBoxXPath();
     std::string cwd = std::string(Temp_CurrentDir)+CROSS_FILESPLIT+"languages"+CROSS_FILESPLIT;
-    Cross::GetPlatformResDir(res_path);
+    res_path = Cross::GetPlatformResDir();
     if (stat(cwd.c_str(),&st) != 0 && exepath.size())
         cwd = exepath+(exepath.back()==CROSS_FILESPLIT?"":std::string(1, CROSS_FILESPLIT))+"languages"+CROSS_FILESPLIT;
     if (stat(cwd.c_str(),&st) != 0 && res_path.size())
@@ -3423,7 +3423,7 @@ void AllocCallback1() {
                     set_callback_function(mixer_info_menu_callback);
                 mainMenu.alloc_item(DOSBoxMenu::item_type_id,"sb_info").set_text("Show Sound Blaster configuration").
                     set_callback_function(sb_device_menu_callback);
-                mainMenu.alloc_item(DOSBoxMenu::item_type_id,"midi_info").set_text("Show MIDI device configuration").
+                mainMenu.alloc_item(DOSBoxMenu::item_type_id,"midi_info").set_text("Show MIDI/OPL device configuration").
                     set_callback_function(midi_device_menu_callback);
             }
         }

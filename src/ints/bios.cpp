@@ -141,6 +141,9 @@ extern bool enable_fpu;
 extern bool finish_prepare;
 extern bool is_ttfswitched_on;
 
+/* vga_pc98_cg.cpp */
+extern bool pc98_cg_kanji_dot_access_mode;
+
 bool pc98_timestamp5c = true; // port 5ch and 5eh "time stamp/hardware wait"
 
 uint32_t Keyb_ig_status();
@@ -812,6 +815,12 @@ void dosbox_integration_trigger_read() {
 			dosbox_int_register = dos_kernel_disabled || !uselfn ? 0: 1;
 			break;
 
+		case DOSBOX_ID_REG_GET_VGA_MEMBASE:
+			dosbox_int_register = S3_LFB_BASE;
+			break;
+		case DOSBOX_ID_REG_GET_VGA_MEMSIZE:
+			dosbox_int_register = vga.mem.memsize;
+			break;
 		case DOSBOX_ID_REG_GET_VGA_SIZE: /* query VGA display size */
 			dosbox_int_register = VGA_QuerySizeIG();
 			break;
@@ -938,6 +947,8 @@ void Watchdog_Timer_Set(uint32_t timeout_ms) {
 		PIC_AddEvent(Watchdog_Timeout_Event,(double)timeout_ms);
 	}
 }
+
+void VGA_DOSBoxIG_FmtToVGA(void);
 
 unsigned int mouse_notify_mode = 0;
 // 0 = off
@@ -1139,6 +1150,125 @@ void dosbox_integration_trigger_write() {
 				CAPTURE_WaveEvent(true);
 			break;
 
+		case DOSBOX_ID_REG_VGAIG_CTL: {
+			bool modechange = false;
+			bool pv;
+
+			if (IS_VGA_ARCH && svgaCard == SVGA_DOSBoxIG) {
+				pv = vga.dosboxig.svga;
+				vga.dosboxig.svga = !!(dosbox_int_register & DOSBOX_ID_REG_VGAIG_CTL_OVERRIDE);
+				if (vga.dosboxig.svga != pv) modechange = true;
+
+				pv = vga.dosboxig.override_refresh;
+				vga.dosboxig.override_refresh = !!(dosbox_int_register & DOSBOX_ID_REG_VGAIG_CTL_OVERRIDE_REFRESH);
+				if (vga.dosboxig.override_refresh != pv) modechange = true;
+
+				vga.dosboxig.vga_reg_lockout = !!(dosbox_int_register & DOSBOX_ID_REG_VGAIG_CTL_VGAREG_LOCKOUT);
+				vga.dosboxig.vga_3da_lockout = !!(dosbox_int_register & DOSBOX_ID_REG_VGAIG_CTL_3DA_LOCKOUT);
+				vga.dosboxig.vga_dac_lockout = !!(dosbox_int_register & DOSBOX_ID_REG_VGAIG_CTL_DAC_LOCKOUT);
+
+				if (modechange) {
+					VGA_DetermineMode();
+					VGA_StartResize(0);
+					VGA_DAC_UpdateColorPalette();
+				}
+			}
+			break; }
+
+		case DOSBOX_ID_REG_VGAIG_DISPLAYSIZE:
+			{
+				unsigned int nw = dosbox_int_register & 0xFFFFu;
+				unsigned int nh = dosbox_int_register >> 16u;
+
+				// NTS: There are problems with the DOSBox scaler system beyond 1920x1080.
+				//      When those are resolved, or a bypass is implemented, this will be changed
+				//      to allow up to 4096x4096.
+				if (nw > 1920) nw = 1920;
+				if (nh > 1080) nh = 1080;
+
+				if (vga.dosboxig.width != nw || vga.dosboxig.height != nh) {
+					vga.dosboxig.width = nw;
+					vga.dosboxig.height = nh;
+					if (vga.dosboxig.svga) VGA_StartResize(0);
+				}
+			}
+			break;
+
+		case DOSBOX_ID_REG_VGAIG_HVTOTALADD:
+			{
+				unsigned int nw = dosbox_int_register & 0xFFFFu;
+				unsigned int nh = dosbox_int_register >> 16u;
+
+				if (vga.dosboxig.wa_total != nw || vga.dosboxig.ha_total != nh) {
+					vga.dosboxig.wa_total = nw;
+					vga.dosboxig.ha_total = nh;
+					if (vga.dosboxig.svga) VGA_StartResize(0);
+				}
+			}
+			break;
+
+		case DOSBOX_ID_REG_VGAIG_FMT_BYTESPERSCANLINE:
+			{
+				unsigned int bpl = dosbox_int_register & 0xFFFFu;
+				unsigned int fmt = (dosbox_int_register >> 16u) & 0xFFu;
+
+				if (vga.dosboxig.vidformat != fmt && fmt != 0xFFu) {
+					vga.dosboxig.vidformat = fmt;
+					if (vga.dosboxig.svga) {
+						VGA_DetermineMode();
+						VGA_StartResize(0);
+					}
+				}
+				if (vga.dosboxig.bytes_per_scanline != bpl) {
+					vga.dosboxig.bytes_per_scanline = bpl;
+					if (vga.dosboxig.svga) VGA_CheckScanLength();
+				}
+			}
+			break;
+
+		case DOSBOX_ID_REG_VGAIG_REFRESHRATE:
+			{
+				uint32_t nr = dosbox_int_register;
+
+				if (nr > (240ul << 16ul)) nr = 240ul << 16ul; /* 240fps is enough! */
+
+				if (vga.dosboxig.vratefp16 != nr) {
+					vga.dosboxig.vratefp16 = nr;
+					if (vga.dosboxig.svga) VGA_StartResize(0);
+				}
+			}
+			break;
+
+		case DOSBOX_ID_REG_VGAIG_DISPLAYOFFSET: {
+			vga.dosboxig.display_offset = dosbox_int_register;
+			break; }
+
+		case DOSBOX_ID_REG_VGAIG_HVPELSCALE: {
+			uint8_t vs = (dosbox_int_register >> 24u) & 0xFFu;
+			uint8_t hs = (dosbox_int_register >> 16u) & 0xFFu;
+			uint8_t vp = (dosbox_int_register >>  8u) & 0xFFu;
+			uint8_t hp =  dosbox_int_register         & 0xFFu;
+
+			/* for now, only pixel doubling is supported */
+			vs &= 1u;
+			hs &= 1u;
+			vp &= 1u;
+			hp &= 1u;
+
+			vga.dosboxig.vscale = vs;
+			vga.dosboxig.hscale = hs;
+			vga.dosboxig.vpel = vp;
+			vga.dosboxig.hpel = hp;
+			break; }
+
+		case DOSBOX_ID_REG_VGAIG_BANKWINDOW:
+			{
+				uint32_t nr = dosbox_int_register & (~0xFFFul);
+				vga.dosboxig.bank_offset = nr;
+				VGA_SetupHandlers();
+			}
+			break;
+
 		case DOSBOX_ID_REG_CPU_CYCLES:
 			ig_cpu_cycles_set |= 1u;
 			ig_cpu_cycles_value = dosbox_int_register;
@@ -1204,6 +1334,12 @@ void dosbox_integration_trigger_write() {
 			dosbox_int_error = true;
 			break;
 	}
+}
+
+void dosbox_integration_trigger_write_direct32(const uint32_t reg,const uint32_t val) {
+	dosbox_int_regsel = reg;
+	dosbox_int_register = val;
+	dosbox_integration_trigger_write();
 }
 
 /* PORT 0x28: Index
@@ -1949,6 +2085,14 @@ void ISAPNP_Cfg_Reset(Section *sec) {
     APMBIOS_allow_realmode = section->Get_bool("apmbios allow realmode");
     APMBIOS_allow_prot16 = section->Get_bool("apmbios allow 16-bit protected mode");
     APMBIOS_allow_prot32 = section->Get_bool("apmbios allow 32-bit protected mode");
+
+    /* The DOSBox Integration Graphics require the integration device */
+    if (IS_VGA_ARCH && svgaCard == SVGA_DOSBoxIG) {
+        if (!enable_integration_device) {
+            LOG(LOG_MISC,LOG_WARN)("Machine type is SVGA DOSBox Integrated Graphics, which requires integration device. Enabling it.");
+            enable_integration_device = true;
+        }
+    }
 
     std::string apmbiosver = section->Get_string("apmbios version");
 
@@ -3997,7 +4141,7 @@ static Bitu INT18_PC98_Handler(void) {
                 0       25lines     20lines
                 1       80cols      40cols
                 2       v.lines     simp.graphics
-                3       K-CG access mode(not used in PC-98) */
+                3       K-CG access mode(not available on original PC-9801) */
             
             //TODO: set 25/20 lines mode and 80/40 columns mode.
             //Attribute bit (bit 2)
@@ -4009,8 +4153,7 @@ static Bitu INT18_PC98_Handler(void) {
 
             mem_writeb(0x53C,(mem_readb(0x53C) & 0xF0u) | (reg_al & 0x0Fu));
 
-            if (reg_al & 8)
-                LOG_MSG("INT 18H AH=0Ah warning: K-CG dot access mode not supported");
+            pc98_cg_kanji_dot_access_mode = !!(reg_al & 8);
 
             pc98_update_text_lineheight_from_bda();
             pc98_update_text_layer_lineheight_from_bda();
@@ -4023,7 +4166,7 @@ static Bitu INT18_PC98_Handler(void) {
                 0       25lines     20lines
                 1       80cols      40cols
                 2       v.lines     simp.graphics
-                3       K-CG access mode(not used in PC-98) 
+                3       K-CG access mode(not available on original PC-9801)
                 7       std CRT     hi-res CRT */
             /* NTS: I assume that real hardware doesn't offer a way to read back the state of these bits,
              *      so the BIOS's only option is to read the mode byte back from the data area.
@@ -10957,6 +11100,9 @@ startfunction:
         if (IS_VGA_ARCH) {
             reg_eax = 18;       // 640x480 16-color
             CALLBACK_RunRealInt(0x10);
+
+            if (svgaCard == SVGA_DOSBoxIG)
+                VGA_StartUpdateLFB();
         }
         else if (machine == MCH_PC98) {
             // clear the graphics layer
@@ -11280,6 +11426,9 @@ startfunction:
                             case ATI_Mach32:           card = "ATI Mach32"; break;
                             case ATI_Mach64:           card = "ATI Mach64"; break;
                         }
+                        break;
+                    case SVGA_DOSBoxIG:
+                        card = "DOSBox Integrated Graphics";
                         break;
                     default:
                         card = "Standard VGA";

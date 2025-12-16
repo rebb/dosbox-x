@@ -1,6 +1,6 @@
 :DOSBOX-X:LANGUAGE:Italiano (Italy)
 :DOSBOX-X:CODEPAGE:437
-:DOSBOX-X:VERSION:2025.05.03
+:DOSBOX-X:VERSION:2025.12.01
 :DOSBOX-X:REMARK:
 :AUTOEXEC_CONFIGFILE_HELP
 Le righe in questa sezione simulano AUTOEXEC.BAT e sono eseguite all'avvio
@@ -150,7 +150,7 @@ Mixer volume
 Configurazione Sound Blaster
 .
 :CURRENT_MIDICONFIG
-Configurazione MIDI attuale
+Configurazione MIDI/OPL attuale
 .
 :CREATE_IMAGE
 Crea immagine disco vuota
@@ -2425,6 +2425,9 @@ Avvio rapido programma...
 :MENU:mapper_shutdown
 Esci da DOSBox-X
 .
+:MENU:mapper_capkeyboard
+Capture keyboard
+.
 :MENU:mapper_capmouse
 Cattura mouse
 .
@@ -2981,7 +2984,7 @@ Visualizza mixer volume
 Visualizza configurazione Sound Blaster
 .
 :MENU:midi_info
-Visualizza configurazione MIDI
+Visualizza configurazione MIDI/OPL
 .
 :MENU:DOSMenu
 DOS

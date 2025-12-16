@@ -956,13 +956,13 @@ void Init_VGABIOS() {
         }
         if (rom_fp == NULL) {
             path = "";
-            Cross::GetPlatformResDir(path);
+            path = Cross::GetPlatformResDir();
             path += VGA_BIOS_rom;
             rom_fp = fopen(path.c_str(),"rb");
         }
         if (rom_fp == NULL) {
             path = "";
-            Cross::GetPlatformConfigDir(path);
+            path = Cross::GetPlatformConfigDir();
             path += VGA_BIOS_rom;
             rom_fp = fopen(path.c_str(),"rb");
         }
@@ -1106,11 +1106,15 @@ void DOSBOX_RealInit() {
 
     LOG(LOG_MISC,LOG_DEBUG)("DOSBOX-X RealInit: loading settings and initializing");
 
-    MAPPER_AddHandler(DOSBOX_UnlockSpeed2, MK_rightarrow, MMODHOST,"speedlock","Toggle Speedlock");
     {
-        MAPPER_AddHandler(DOSBOX_UnlockSpeed2, MK_nothing, 0, "speedlock2", "Turbo (Fast Forward)", &item);
-        item->set_description("Toggle emulation speed, to allow running faster than realtime (fast forward)");
-        item->set_text("Turbo (Fast Forward)");
+        MAPPER_AddHandler(DOSBOX_UnlockSpeed, MK_grave, MMODHOST, "speedlock", "Turbo (fast-forward): burst", &item);
+        item->set_description("Burst turbo (fast-forward) emulation speed, to allow running faster than realtime");
+        item->set_text("Turbo (fast-forward): burst mode");
+    }
+    {
+        MAPPER_AddHandler(DOSBOX_UnlockSpeed2, MK_rightarrow, MMODHOST, "speedlock2", "Turbo (fast-forward): toggle", &item);
+        item->set_description("Toggle turbo (fast-forward) emulation speed, to allow running faster than realtime");
+        item->set_text("Turbo (fast-forward)");
     }
     {
         MAPPER_AddHandler(DOSBOX_NormalSpeed, MK_leftarrow, MMODHOST, "speednorm","Normal speed", &item);
@@ -1247,6 +1251,7 @@ void DOSBOX_RealInit() {
     else if (mtype == "pc9821")        { machine = MCH_PC98; } /* Future differentiation */
 
     else if (mtype == "fm_towns")      { machine = MCH_VGA; want_fm_towns = true; /*machine = MCH_FM_TOWNS;*/ }
+    else if (mtype == "svga_dosbox")   { machine = MCH_VGA; svgaCard = SVGA_DOSBoxIG; } /* special emulator accelerator graphics adapter */
 
     else E_Exit("DOSBOX-X:Unknown machine type %s",mtype.c_str());
 
@@ -1504,6 +1509,7 @@ void DOSBOX_SetupConfigSections(void) {
 	"svga_ati_mach8",
 	"svga_ati_mach32",
 	"svga_ati_mach64",
+	"svga_dosbox",
 	"fm_towns", // STUB
         nullptr };
 
@@ -2436,10 +2442,13 @@ void DOSBOX_SetupConfigSections(void) {
                     "at driver startup AND when INT 33h AX=0 is called. This is NEC MOUSE.COM behavior and default\n"
                     "enabled. To emulate other drivers like QMOUSE that do not follow this behavior, set to false.");
 
-    Pbool = secprop->Add_bool("pc-98 chargen vsync-limited access",Property::Changeable::WhenIdle,true);
+    Pbool = secprop->Add_bool("pc-98 chargen vsync-limited access",Property::Changeable::WhenIdle,false);
     Pbool->Set_help("If set, reading pixels from the character generator while in Code Access mode (or always, for ANK\n"
                     "characters) will be invalid. Some models (i.e. PC-9821As3) dont seem to have this limitation, but\n"
-                    "many others do.");
+                    "many others do.\n"
+                    "This option is set to false by default, set this option to true if you suffer text glitches.\n"
+                    "It is reported that setting this option to true will result in glitches in some titles;"
+                    "therefore revert this option to false in such cases.");
 
     secprop=control->AddSection_prop("dosv",&Null_Init,true);
 
@@ -2585,7 +2594,7 @@ void DOSBOX_SetupConfigSections(void) {
 	    "This option may be useful if you would like to prevent your DOS gaming from appearing in the Windows 11 Recall feature");
 
     Pint = secprop->Add_int("vmemsize", Property::Changeable::WhenIdle,-1);
-    Pint->SetMinMax(-1,16);
+    Pint->SetMinMax(-1,128);
     Pint->Set_help(
         "Amount of video memory in megabytes.\n"
         "  The maximum resolution and color depth the svga_s3 will be able to display\n"
@@ -4631,6 +4640,13 @@ void DOSBOX_SetupConfigSections(void) {
     Pbool->Set_help("Report DOS network redirector as resident. This will allow the host name to be returned unless the secure mode is enabled.\n"
             "You can also directly access UNC network paths in the form \\\\MACHINE\\SHARE even if they are not mounted as drives on Windows systems.\n"
             "Set either \"ipx=true\" in [ipx] section or \"ne2000=true\" in [ne2000] section for a full network redirector environment.");
+    Pbool->SetBasic(true);
+
+    Pbool = secprop->Add_bool("mcb corruption becomes application free memory",Property::Changeable::WhenIdle,false);
+    Pbool->Set_help("If MCB chain corruption occurs following the DOS program PSP segment and the DOS program does anything to cause memory allocation,"
+                    "make a new free memory block in it's place instead of halting emulation with an MCB chain error. Some DOS programs are sloppy"
+                    "with memory to corrupt the MCB chain after itself in memory. This is apparently real MS-DOS behavior, set to true to enable."
+                    "If set to false, all MCB chain corruption will halt emulation as DOSBox forks typically do already.");
     Pbool->SetBasic(true);
 
     Phex = secprop->Add_hex("minimum dos initial private segment", Property::Changeable::WhenIdle,0);

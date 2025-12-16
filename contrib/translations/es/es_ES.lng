@@ -1,6 +1,6 @@
 :DOSBOX-X:LANGUAGE:Spanish (Spain)
 :DOSBOX-X:CODEPAGE:858
-:DOSBOX-X:VERSION:2025.05.03
+:DOSBOX-X:VERSION:2025.12.01
 :DOSBOX-X:REMARK:
 :AUTOEXEC_CONFIGFILE_HELP
 Las líneas de esta sección se iniciarán al inicio.
@@ -153,7 +153,7 @@ Valores actuales del mezclador
 Configuración de Sound Blaster
 .
 :CURRENT_MIDICONFIG
-Configuración actual de MIDI
+Configuración actual de MIDI/OPL
 .
 :CREATE_IMAGE
 Crear imagen de disco en blanco
@@ -2433,6 +2433,9 @@ Inicio rápido de programa...
 :MENU:mapper_shutdown
 Salir de DOSBox-X
 .
+:MENU:mapper_capkeyboard
+Capture keyboard
+.
 :MENU:mapper_capmouse
 Capturar ratón
 .
@@ -3001,7 +3004,7 @@ Mostrar mezcladores de volumen de sonido
 Mostrar configuración de Sound Blaster
 .
 :MENU:midi_info
-Mostrar configuración de dispositivo MIDI
+Mostrar configuración de dispositivo MIDI/OPL
 .
 :MENU:DOSMenu
 DOS

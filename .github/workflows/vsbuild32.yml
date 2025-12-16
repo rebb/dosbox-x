@@ -21,7 +21,7 @@ jobs:
         uses: styfle/cancel-workflow-action@0.12.1
         with:
           access_token: ${{ github.token }}
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: microsoft/setup-msbuild@v2
       - name: Prepare Visual Studio Win32
         shell: bash
@@ -107,7 +107,7 @@ jobs:
           $top/vs/tool/zip.exe -r -9 $top/dosbox-x-vsbuild-win32-${{ env.timestamp }}.zip *
           cd $top
       - name: Upload preview package
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: dosbox-x-vsbuild-win32-${{ env.timestamp }}
           path: ${{ github.workspace }}/package/
@@ -131,7 +131,7 @@ jobs:
         uses: styfle/cancel-workflow-action@0.12.1
         with:
           access_token: ${{ github.token }}
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: microsoft/setup-msbuild@v2
       - name: Prepare Visual Studio ARM32
         shell: bash
@@ -208,7 +208,7 @@ jobs:
           $top/vs/tool/zip.exe -r -9 $top/dosbox-x-vsbuild-arm32-${{ env.timestamp }}.zip *
           cd $top
       - name: Upload preview package
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: dosbox-x-vsbuild-arm32-${{ env.timestamp }}
           path: ${{ github.workspace }}/package/
