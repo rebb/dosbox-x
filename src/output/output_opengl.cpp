@@ -20,6 +20,7 @@ extern "C" {
 #include <output/output_tools.h>
 #include <output/output_tools_xbrz.h>
 
+#include <string>
 #include <algorithm>
 
 #include "sdlmain.h"
@@ -34,6 +35,14 @@ extern Bitu currentWindowWidth;
 extern Bitu currentWindowHeight;
 
 bool setSizeButNotResize();
+
+#if defined (MACOSX) && !defined(C_SDL2)
+#define GLTEX_PIXELFORMAT GL_BGRA_EXT
+#define GLTEX_PIXELTYPE GL_UNSIGNED_INT_8_8_8_8_REV
+#else
+#define GLTEX_PIXELFORMAT GL_RGBA
+#define GLTEX_PIXELTYPE GL_UNSIGNED_BYTE
+#endif
 
 #if C_OPENGL
 PFNGLGENBUFFERSARBPROC glGenBuffersARB = NULL;
@@ -487,10 +496,18 @@ static GLuint BuildShader ( GLenum type, const char *shaderSrc ) {
 }
 
 static bool LoadGLShaders(const char *src, GLuint *vertex, GLuint *fragment) {
-	GLuint s = BuildShader(GL_VERTEX_SHADER, src);
+    std::string
+        srcActual =
+            "#ifdef GL_ES\n"
+            "precision highp float;\n"
+            "#endif\n";
+
+    srcActual.append( src );
+
+	GLuint s = BuildShader(GL_VERTEX_SHADER, srcActual.data());
 	if (s) {
 		*vertex = s;
-		s = BuildShader(GL_FRAGMENT_SHADER, src);
+		s = BuildShader(GL_FRAGMENT_SHADER, srcActual.data());
 		if (s) {
 			*fragment = s;
 			return true;
@@ -803,7 +820,12 @@ Bitu OUTPUT_OPENGL_SetSize()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, interp );
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, interp );
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, texsize, texsize, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, nullptr);
+    #if !( defined (MACOSX) && !defined(C_SDL2))
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
+    #endif
+    
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, texsize, texsize, 0, GLTEX_PIXELFORMAT, GL_UNSIGNED_BYTE, nullptr);
 
     // NTS: I'm told that nVidia hardware seems to triple buffer despite our
     //      request to double buffer (according to @pixelmusement), therefore
@@ -996,12 +1018,12 @@ void OUTPUT_OPENGL_EndUpdate(const uint16_t *changedLines)
                 glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT);
                 glBindTexture(GL_TEXTURE_2D, sdl_opengl.texture);
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-                    (int)(sdl.draw.width * (unsigned int)sdl_xbrz.scale_factor), (int)(sdl.draw.height * (unsigned int)sdl_xbrz.scale_factor), GL_BGRA_EXT,
+                    (int)(sdl.draw.width * (unsigned int)sdl_xbrz.scale_factor), (int)(sdl.draw.height * (unsigned int)sdl_xbrz.scale_factor), GLTEX_PIXELFORMAT,
 #if defined (MACOSX) && !defined(C_SDL2)
                     // needed for proper looking graphics on macOS 10.12, 10.13
                     GL_UNSIGNED_INT_8_8_8_8,
-#else
-                    GL_UNSIGNED_INT_8_8_8_8_REV,
+#else                    
+                    GLTEX_PIXELTYPE,
 #endif
                     nullptr);
                 glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
@@ -1010,13 +1032,13 @@ void OUTPUT_OPENGL_EndUpdate(const uint16_t *changedLines)
             {
                 glBindTexture(GL_TEXTURE_2D, sdl_opengl.texture);
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-                    (int)(sdl.draw.width * (unsigned int)sdl_xbrz.scale_factor), (int)(sdl.draw.height * (unsigned int)sdl_xbrz.scale_factor), GL_BGRA_EXT,
+                    (int)(sdl.draw.width * (unsigned int)sdl_xbrz.scale_factor), (int)(sdl.draw.height * (unsigned int)sdl_xbrz.scale_factor), GLTEX_PIXELFORMAT,
 #if defined (MACOSX) && !defined(C_SDL2)
                     // needed for proper looking graphics on macOS 10.12, 10.13
                     GL_UNSIGNED_INT_8_8_8_8,
 #else
                     // works on Linux
-                    GL_UNSIGNED_INT_8_8_8_8_REV,
+                    GLTEX_PIXELTYPE,
 #endif
                     (uint8_t *)sdl_opengl.framebuf);
             }
@@ -1033,13 +1055,13 @@ void OUTPUT_OPENGL_EndUpdate(const uint16_t *changedLines)
             glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT);
             glBindTexture(GL_TEXTURE_2D, sdl_opengl.texture);
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-                (int)sdl.draw.width, (int)sdl.draw.height, GL_BGRA_EXT,
+                (int)sdl.draw.width, (int)sdl.draw.height, GLTEX_PIXELFORMAT,
 #if defined (MACOSX)
                 // needed for proper looking graphics on macOS 10.12, 10.13
                 GL_UNSIGNED_INT_8_8_8_8,
 #else
                 // works on Linux
-                GL_UNSIGNED_INT_8_8_8_8_REV,
+                GLTEX_PIXELTYPE,
 #endif
                 (void*)0);
             glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
@@ -1064,13 +1086,13 @@ void OUTPUT_OPENGL_EndUpdate(const uint16_t *changedLines)
                     uint8_t *pixels = (uint8_t *)sdl_opengl.framebuf + y * sdl_opengl.pitch;
                     Bitu height = changedLines[index];
                     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, (int)y,
-                        (int)sdl.draw.width, (int)height, GL_BGRA_EXT,
+                        (int)sdl.draw.width, (int)height, GLTEX_PIXELFORMAT,
 #if defined (MACOSX) && !defined(C_SDL2)
                         // needed for proper looking graphics on macOS 10.12, 10.13
                         GL_UNSIGNED_INT_8_8_8_8,
 #else
                         // works on Linux
-                        GL_UNSIGNED_INT_8_8_8_8_REV,
+                        GLTEX_PIXELTYPE,
 #endif
                         (void*)pixels);
                     y += height;
