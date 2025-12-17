@@ -354,6 +354,22 @@ void OUTPUT_OPENGL_Select( GLKind kind )
 #if defined(C_SDL2)
     SDL_SetHint( SDL_HINT_FRAMEBUFFER_ACCELERATION, "1" ); // setting this to "opengl" caused crashes in certain situations (#3661). can still be overridden via environment variable
 
+    // ask for an OpenGL version ( maybe do this via config file instead ? )
+    const auto
+        preferOpenGLProfile = getenv("DOSBOX_GL_PREFER_PROFILE"),
+        preferGLMajor = getenv("DOSBOX_GL_PREFER_MAJOR_VERSION"),
+        preferGLMinor = getenv("DOSBOX_GL_PREFER_MINOR_VERSION");
+
+    if( preferOpenGLProfile && std::strcmp( preferOpenGLProfile, "ES" ) == 0 ) {
+        SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES );
+    }
+    if( preferGLMajor ) {
+        SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, atoi( preferGLMajor ));
+    }
+    if( preferGLMinor ) {
+        SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, atoi( preferGLMinor ));
+    }
+
     void GFX_SetResizeable(bool enable);
     GFX_SetResizeable(true);
     sdl.window = GFX_SetSDLWindowMode(640,400, SCREEN_OPENGL);
@@ -361,23 +377,7 @@ void OUTPUT_OPENGL_Select( GLKind kind )
         if(sdl_opengl.context) {
             SDL_GL_DeleteContext(sdl_opengl.context);
             sdl_opengl.context = nullptr;
-        }
-
-        // ask for an OpenGL version ( maybe do this via config file instead ? )
-        const auto
-            preferOpenGLProfile = getenv("DOSBOX_GL_PREFER_PROFILE"),
-            preferGLMajor = getenv("DOSBOX_GL_PREFER_MAJOR_VERSION"),
-            preferGLMinor = getenv("DOSBOX_GL_PREFER_MINOR_VERSION");
-
-        if( preferOpenGLProfile && std::strcmp( preferOpenGLProfile, "ES" ) == 0 ) {
-            SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES );
-        }
-        if( preferGLMajor ) {
-            SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, atoi( preferGLMajor ));
-        }
-        if( preferGLMinor ) {
-            SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, atoi( preferGLMinor ));
-        }
+        }        
 
         sdl_opengl.context = SDL_GL_CreateContext(sdl.window);
         sdl.surface = SDL_GetWindowSurface(sdl.window);
