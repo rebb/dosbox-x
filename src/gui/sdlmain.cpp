@@ -1793,6 +1793,7 @@ SDL_Window* GFX_SetSDLWindowMode(uint16_t width, uint16_t height, SCREEN_TYPES s
 #if C_OPENGL
         if (screenType == SCREEN_OPENGL) {
             sdl_opengl.context = SDL_GL_CreateContext(sdl.window);
+            LOG_MSG( "OpenGL Version : %s", glGetString( GL_VERSION ));
             if (sdl_opengl.context == NULL) LOG_MSG("WARNING: SDL2 unable to create GL context");
             if (SDL_GL_MakeCurrent(sdl.window, sdl_opengl.context) != 0) LOG_MSG("WARNING: SDL2 unable to make current GL context");
         }
@@ -1848,6 +1849,7 @@ SDL_Window* GFX_SetSDLWindowMode(uint16_t width, uint16_t height, SCREEN_TYPES s
 #if C_OPENGL
     if (screenType == SCREEN_OPENGL) {
         sdl_opengl.context = SDL_GL_CreateContext(sdl.window);
+        LOG_MSG( "OpenGL Version : %s", glGetString( GL_VERSION ));
         if (sdl_opengl.context == NULL) LOG_MSG("WARNING: SDL2 unable to create GL context");
         if (SDL_GL_MakeCurrent(sdl.window, sdl_opengl.context) != 0) LOG_MSG("WARNING: SDL2 unable to make current GL context");
     }
