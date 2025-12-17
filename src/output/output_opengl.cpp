@@ -21,6 +21,7 @@ extern "C" {
 #include <output/output_tools_xbrz.h>
 
 #include <string>
+#include <cstring>
 #include <algorithm>
 
 #include "sdlmain.h"
